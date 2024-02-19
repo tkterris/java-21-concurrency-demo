@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class RemoteServiceFlat {
+public class RemoteServiceFlat implements RemoteService {
 
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -33,10 +33,12 @@ public class RemoteServiceFlat {
 	@Qualifier("nonblocking")
 	private ScheduledExecutorService nonblockingExecutor;
 
+	@Override
 	public Future<String> sendRequestPlatform() {
 		return sendRequestThreaded(platformExecutor);
 	}
 
+	@Override
 	public Future<String> sendRequestVirtual() {
 		return sendRequestThreaded(virtualExecutor);
 	}
@@ -62,6 +64,7 @@ public class RemoteServiceFlat {
 		return result;
 	}
 
+	@Override
 	public Future<String> sendRequestNonblocking() {
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
 		CompletableFuture<String> result = new CompletableFuture<String>();

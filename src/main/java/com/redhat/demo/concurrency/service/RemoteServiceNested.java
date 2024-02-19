@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class RemoteServiceNested {
+public class RemoteServiceNested implements RemoteService {
 
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -69,16 +69,7 @@ public class RemoteServiceNested {
 	private void threadedThird(CompletableFuture<String> result) throws InterruptedException {
 		logger.debug("Start blocking operation 3");
 		Thread.sleep(blockTimeMs / 3);
-		threadedComplete(result);
-	}
-
-	private void threadedComplete(CompletableFuture<String> result) throws InterruptedException {
-		// More CPU stuff
-		logger.debug("Some more CPU operations");
-		if (logger.isDebugEnabled()) {
-			logger.debug("Current stack", new RuntimeException("Printing stack"));
-		}
-		result.complete("done");
+		completeResponse(result);
 	}
 
 	public Future<String> sendRequestNonblocking() {
@@ -99,10 +90,10 @@ public class RemoteServiceNested {
 
 	private void nonblockingSecond(CompletableFuture<String> result) {
 		logger.debug("Start blocking operation 2");
-		nonblockingExecutor.schedule(() -> nonblockingThird(result), blockTimeMs / 3, TimeUnit.MILLISECONDS);
+		nonblockingExecutor.schedule(() -> completeResponse(result), blockTimeMs / 3, TimeUnit.MILLISECONDS);
 	}
 
-	private void nonblockingThird(CompletableFuture<String> result) {
+	private void completeResponse(CompletableFuture<String> result) {
 		// More CPU stuff
 		logger.debug("Some more CPU operations");
 		if (logger.isDebugEnabled()) {
