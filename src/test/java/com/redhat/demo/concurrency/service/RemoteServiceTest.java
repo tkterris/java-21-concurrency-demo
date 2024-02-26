@@ -2,7 +2,6 @@ package com.redhat.demo.concurrency.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -26,63 +25,71 @@ import com.redhat.demo.concurrency.Application;
 @TestInstance(Lifecycle.PER_CLASS)
 @ActiveProfiles("test")
 public class RemoteServiceTest {
-	
+
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
+	private enum ConcurrencyType {
+		PLATFORM, NONBLOCKING, VIRTUAL
+	}
+
 	@Value("${test.requestCount}")
-	private Integer requestCount;
+	private int requestCount;
 
 	@Value("${concurrency.blockTimeMs}")
-	private Integer blockTimeMs;
+	private int blockTimeMs;
+
+	@Value("${test.concurrencyTypes:}")
+	private List<ConcurrencyType> concurrencyTypes;
 
 	@Autowired
-	private RemoteServiceFlat remoteServiceFlat;
+	private RemoteServicePlatform remoteServicePlatform;
 
 	@Autowired
-	private RemoteServiceNested remoteServiceNested;
-	
+	private RemoteServiceNonblocking remoteServiceNonblocking;
+
+	@Autowired
+	private RemoteServiceVirtual remoteServiceVirtual;
+
 	private Stream<Arguments> remoteServices() {
-	    return Stream.of(
-	    	      Arguments.of(remoteServiceFlat),
-	    	      Arguments.of(remoteServiceNested));
+		List<Arguments> arguments = new ArrayList<>();
+		if (concurrencyTypes.isEmpty() || concurrencyTypes.contains(ConcurrencyType.PLATFORM)) {
+			arguments.add(Arguments.of(remoteServicePlatform));
+		}
+		if (concurrencyTypes.isEmpty() || concurrencyTypes.contains(ConcurrencyType.NONBLOCKING)) {
+			arguments.add(Arguments.of(remoteServiceNonblocking));
+		}
+		if (concurrencyTypes.isEmpty() || concurrencyTypes.contains(ConcurrencyType.VIRTUAL)) {
+			arguments.add(Arguments.of(remoteServiceVirtual));
+		}
+		return arguments.stream();
 	}
 
 	@ParameterizedTest
 	@MethodSource("remoteServices")
-	public void sendRequestPlatform_performance(RemoteService remoteService) throws Exception {
-		logger.info("Starting platform thread performance test with {} requests and a time delay of {} ms", requestCount, blockTimeMs);
-		long duration = sendParallelRequests(() -> remoteService.sendRequestPlatform());
-		logger.info("Completed platform thread performance test in {} ms", duration);
-	}
-
-	@ParameterizedTest
-	@MethodSource("remoteServices")
-	public void sendRequestNonblocking_performance(RemoteService remoteService) throws Exception {
-		logger.info("Starting non blocking performance test with {} requests and a time delay of {} ms", requestCount, blockTimeMs);
-		long duration = sendParallelRequests(() -> remoteService.sendRequestNonblocking());
-		logger.info("Completed non blocking performance test in {} ms", duration);
-	}
-
-	@ParameterizedTest
-	@MethodSource("remoteServices")
-	public void sendRequestVirtual_performance(RemoteService remoteService) throws Exception {
-		logger.info("Starting virtual thread performance test with {} requests and a time delay of {} ms", requestCount, blockTimeMs);
-		long duration = sendParallelRequests(() -> remoteService.sendRequestVirtual());
-		logger.info("Completed virtual thread performance test in {} ms", duration);
-	}
-	
-	private long sendParallelRequests(Callable<Future<String>> callable) throws Exception {
+	public void sendRequest_performance(RemoteService remoteService) throws Exception {
+		logger.info("Starting {} performance test with {} requests and a time delay of {}x3 ms",
+				remoteService.getDisplayName(), requestCount, blockTimeMs);
 		long startTime = System.currentTimeMillis();
 		// Submit requestCount requests
 		List<Future<String>> results = new ArrayList<>(requestCount);
 		for (int i = 0; i < requestCount; i++) {
-			results.add(callable.call());
+			results.add(remoteService.sendRequest());
 		}
 		// Wait for all requests to complete
 		for (Future<String> result : results) {
 			result.get();
 		}
 		// Return with time taken to complete requests
-		return System.currentTimeMillis() - startTime;
+		logger.info("Completed {} performance test in {} ms", remoteService.getDisplayName(),
+				System.currentTimeMillis() - startTime);
+	}
+
+	@ParameterizedTest
+	@MethodSource("remoteServices")
+	public void sendRequestNested_tracing(RemoteService remoteService) throws Exception {
+		logger.info("Starting {} tracing test", remoteService.getDisplayName());
+		Future<String> result = remoteService.sendRequestNested();
+		result.get();
+		logger.info("Completed {} tracing test", remoteService.getDisplayName());
 	}
 }
