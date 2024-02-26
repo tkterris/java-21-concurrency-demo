@@ -50,6 +50,13 @@ public class RemoteServiceTest {
 	@Autowired
 	private RemoteServiceVirtual remoteServiceVirtual;
 
+	/**
+	 * Provides a list of RemoteService, based on the value of test.concurrencyTypes
+	 * (if that value is an empty list, all RemoteServices are returned). Referenced
+	 * via @ParameterizedTest and @MethodSource on the test method annotations.
+	 * 
+	 * @return a Stream containing the remote services to run
+	 */
 	private Stream<Arguments> remoteServices() {
 		List<Arguments> arguments = new ArrayList<>();
 		if (concurrencyTypes.isEmpty() || concurrencyTypes.contains(ConcurrencyType.PLATFORM)) {
@@ -77,7 +84,8 @@ public class RemoteServiceTest {
 		}
 		// Wait for all requests to complete
 		for (Future<String> result : results) {
-			result.get();
+			String resultString = result.get();
+			logger.debug("Response: {}", resultString);
 		}
 		// Return with time taken to complete requests
 		logger.info("Completed {} performance test in {} ms", remoteService.getDisplayName(),
@@ -89,7 +97,8 @@ public class RemoteServiceTest {
 	public void sendRequestNested_tracing(RemoteService remoteService) throws Exception {
 		logger.info("Starting {} tracing test", remoteService.getDisplayName());
 		Future<String> result = remoteService.sendRequestNested();
-		result.get();
+		String resultString = result.get();
+		logger.debug("Response: {}", resultString);
 		logger.info("Completed {} tracing test", remoteService.getDisplayName());
 	}
 }

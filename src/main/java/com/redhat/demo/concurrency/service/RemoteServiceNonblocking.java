@@ -34,6 +34,11 @@ public class RemoteServiceNonblocking implements RemoteService {
 		logger.debug("CPU operations here");
 		// Blocking stuff
 		logger.debug("Start blocking operation 1");
+		// Note: normally you'd return executorService.schedule(...) and use thenApply()
+		// to perform successive blocking operations, with the last callback simply
+		// returning the result. However, thenApply() isn't a method on ScheduledFuture
+		// so we're using this generic approach with an instantiated CompletableFuture
+		// and CompletableFuture.complete() instead.
 		executorService.schedule(() -> {
 			logger.debug("Start blocking operation 2");
 			executorService.schedule(() -> {
@@ -54,18 +59,23 @@ public class RemoteServiceNonblocking implements RemoteService {
 		CompletableFuture<String> result = new CompletableFuture<String>();
 		// CPU stuff
 		logger.debug("CPU operations here");
-		// Blocking stuff
-		logger.debug("Start blocking operation 1");
-		executorService.schedule(() -> nonblockingFirst(result), blockTimeMs, TimeUnit.MILLISECONDS);
+		nonblockingFirst(result);
 		return result;
 	}
 
 	private void nonblockingFirst(CompletableFuture<String> result) {
-		logger.debug("Start blocking operation 2");
+		// Blocking stuff
+		logger.debug("Start blocking operation 1");
+		// See note in sendRequest()
 		executorService.schedule(() -> nonblockingSecond(result), blockTimeMs, TimeUnit.MILLISECONDS);
 	}
 
 	private void nonblockingSecond(CompletableFuture<String> result) {
+		logger.debug("Start blocking operation 2");
+		executorService.schedule(() -> nonblockingThird(result), blockTimeMs, TimeUnit.MILLISECONDS);
+	}
+
+	private void nonblockingThird(CompletableFuture<String> result) {
 		logger.debug("Start blocking operation 2");
 		executorService.schedule(() -> completeResponse(result), blockTimeMs, TimeUnit.MILLISECONDS);
 	}

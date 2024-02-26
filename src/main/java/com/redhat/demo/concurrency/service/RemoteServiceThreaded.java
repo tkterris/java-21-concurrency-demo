@@ -1,6 +1,5 @@
 package com.redhat.demo.concurrency.service;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -29,8 +28,7 @@ public abstract class RemoteServiceThreaded implements RemoteService {
 	@Override
 	public Future<String> sendRequest() {
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
-		CompletableFuture<String> result = new CompletableFuture<String>();
-		executorService.submit(() -> {
+		return executorService.submit(() -> {
 			// CPU stuff
 			logger.debug("CPU operations here");
 			// Blocking stuff
@@ -42,49 +40,44 @@ public abstract class RemoteServiceThreaded implements RemoteService {
 			Thread.sleep(blockTimeMs);
 			// More CPU stuff
 			logger.debug("Some more CPU operations");
-			result.complete("done");
-			return null;
+			return "done";
 		});
-		return result;
 	}
 
 	@Override
 	public Future<String> sendRequestNested() {
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
-		CompletableFuture<String> result = new CompletableFuture<String>();
-		executorService.submit(() -> {
+		return executorService.submit(() -> {
 			// CPU stuff
 			logger.debug("CPU operations here");
 			// Blocking stuff
-			threadedFirst(result);
-			return null;
+			return threadedFirst();
 		});
-		return result;
 	}
 	
-	private void threadedFirst(CompletableFuture<String> result) throws InterruptedException {
+	private String threadedFirst() throws InterruptedException {
 		logger.debug("Start blocking operation 1");
 		Thread.sleep(blockTimeMs);
-		threadedSecond(result);
+		return threadedSecond();
 	}
 	
-	private void threadedSecond(CompletableFuture<String> result) throws InterruptedException {
+	private String threadedSecond() throws InterruptedException {
 		logger.debug("Start blocking operation 2");
 		Thread.sleep(blockTimeMs);
-		threadedThird(result);
+		return threadedThird();
 	}
 	
-	private void threadedThird(CompletableFuture<String> result) throws InterruptedException {
+	private String threadedThird() throws InterruptedException {
 		logger.debug("Start blocking operation 3");
 		Thread.sleep(blockTimeMs);
-		completeResponse(result);
+		return completeResponse();
 	}
 
-	private void completeResponse(CompletableFuture<String> result) {
+	private String completeResponse() {
 		// More CPU stuff
 		logger.debug("Some more CPU operations");
 		logger.info("Current stack", new RuntimeException("Printing stack"));
-		result.complete("done");
+		return "done";
 	}
 
 }
