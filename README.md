@@ -30,7 +30,7 @@ requests. `sendRequestNested_tracing` sends a single request to
 `sendRequestNested()`, causing a stack trace to be printed.
 
 By default, the tests are executed using all three implementations of 
-`RemoteService', but a subset can be executed by setting 
+`RemoteService`, but a subset can be executed by setting 
 `test.concurrencyTypes`. 
 
 ## Executing
