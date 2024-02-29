@@ -52,6 +52,9 @@ the request count to 100,000 (from the default of 10,000), use:
 mvn clean install -Dtest.concurrencyTypes=NONBLOCKING,VIRTUAL -Dtest.requestCount=100000
 ```
 
+You can also change test parameters by updating 
+`src/test/resources/application-test.properties`. 
+
 ## Interpreting Results
 
 ### Performance Test Results
@@ -89,27 +92,30 @@ When running the tracing tests with the default parameters, we see the
 following output:
 
 ```
-2024-02-26T13:49:58.323-05:00  INFO 29063 --- [           main] c.r.d.c.service.RemoteServiceTest        : Starting platform thread tracing test
-2024-02-26T13:49:58.625-05:00  INFO 29063 --- [pool-4-thread-1] .s.RemoteServicePlatform$$SpringCGLIB$$0 : Current stack
+2024-02-29T10:33:50.608-05:00  INFO 17879 --- [           main] c.r.d.c.service.RemoteServiceTest        : Starting platform thread tracing test
+2024-02-29T10:33:50.910-05:00  INFO 17879 --- [pool-3-thread-1] .s.RemoteServicePlatform$$SpringCGLIB$$0 : Printing stack trace
 
-java.lang.RuntimeException: Printing stack
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.completeResponse(RemoteServiceThreaded.java:79) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.threadedThird(RemoteServiceThreaded.java:73) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.threadedSecond(RemoteServiceThreaded.java:67) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.threadedFirst(RemoteServiceThreaded.java:61) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.lambda$sendRequestNested$1(RemoteServiceThreaded.java:54) ~[classes/:na]
+java.lang.RuntimeException: Some exception
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.completeResponse(RemoteServiceThreaded.java:84) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.third(RemoteServiceThreaded.java:78) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.second(RemoteServiceThreaded.java:72) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.first(RemoteServiceThreaded.java:66) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.lambda$1(RemoteServiceThreaded.java:59) ~[classes/:na]
 	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
 	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
 
-2024-02-26T13:49:58.627-05:00  INFO 29063 --- [           main] c.r.d.c.service.RemoteServiceTest        : Completed platform thread tracing test
-2024-02-26T13:49:58.636-05:00  INFO 29063 --- [           main] c.r.d.c.service.RemoteServiceTest        : Starting nonblocking tracing test
-2024-02-26T13:49:58.938-05:00  INFO 29063 --- [pool-3-thread-1] RemoteServiceNonblocking$$SpringCGLIB$$0 : Current stack
+2024-02-29T10:33:50.914-05:00  INFO 17879 --- [           main] c.r.d.c.service.RemoteServiceTest        : Completed platform thread tracing test
+2024-02-29T10:33:50.925-05:00  INFO 17879 --- [           main] c.r.d.c.service.RemoteServiceTest        : Starting nonblocking tracing test
+2024-02-29T10:33:51.228-05:00  INFO 17879 --- [pool-2-thread-1] RemoteServiceNonblocking$$SpringCGLIB$$0 : Printing stack trace
 
-java.lang.RuntimeException: Printing stack
-	at com.redhat.demo.concurrency.service.RemoteServiceNonblocking.completeResponse(RemoteServiceNonblocking.java:86) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceNonblocking.lambda$nonblockingThird$5(RemoteServiceNonblocking.java:80) ~[classes/:na]
+java.lang.RuntimeException: Some exception
+	at com.redhat.demo.concurrency.service.RemoteServiceNonblocking.completeResponse(RemoteServiceNonblocking.java:91) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceNonblocking.lambda$12(RemoteServiceNonblocking.java:85) ~[classes/:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniApply.tryFire(CompletableFuture.java:646) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1773) ~[na:na]
 	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
 	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
 	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[na:na]
@@ -117,20 +123,20 @@ java.lang.RuntimeException: Printing stack
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
 	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
 
-2024-02-26T13:49:58.939-05:00  INFO 29063 --- [           main] c.r.d.c.service.RemoteServiceTest        : Completed nonblocking tracing test
-2024-02-26T13:49:58.946-05:00  INFO 29063 --- [           main] c.r.d.c.service.RemoteServiceTest        : Starting virtual thread tracing test
-2024-02-26T13:49:59.250-05:00  INFO 29063 --- [               ] c.s.RemoteServiceVirtual$$SpringCGLIB$$0 : Current stack
+2024-02-29T10:33:51.229-05:00  INFO 17879 --- [           main] c.r.d.c.service.RemoteServiceTest        : Completed nonblocking tracing test
+2024-02-29T10:33:51.235-05:00  INFO 17879 --- [           main] c.r.d.c.service.RemoteServiceTest        : Starting virtual thread tracing test
+2024-02-29T10:33:51.539-05:00  INFO 17879 --- [               ] c.s.RemoteServiceVirtual$$SpringCGLIB$$0 : Printing stack trace
 
-java.lang.RuntimeException: Printing stack
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.completeResponse(RemoteServiceThreaded.java:79) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.threadedThird(RemoteServiceThreaded.java:73) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.threadedSecond(RemoteServiceThreaded.java:67) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.threadedFirst(RemoteServiceThreaded.java:61) ~[classes/:na]
-	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.lambda$sendRequestNested$1(RemoteServiceThreaded.java:54) ~[classes/:na]
+java.lang.RuntimeException: Some exception
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.completeResponse(RemoteServiceThreaded.java:84) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.third(RemoteServiceThreaded.java:78) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.second(RemoteServiceThreaded.java:72) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.first(RemoteServiceThreaded.java:66) ~[classes/:na]
+	at com.redhat.demo.concurrency.service.RemoteServiceThreaded.lambda$1(RemoteServiceThreaded.java:59) ~[classes/:na]
 	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
 	at java.base/java.lang.VirtualThread.run(VirtualThread.java:309) ~[na:na]
 
-2024-02-26T13:49:59.251-05:00  INFO 29063 --- [           main] c.r.d.c.service.RemoteServiceTest        : Completed virtual thread tracing test
+2024-02-29T10:33:51.540-05:00  INFO 17879 --- [           main] c.r.d.c.service.RemoteServiceTest        : Completed virtual thread tracing test
 ```
 
 In this output, we see stack traces printed with both Platform and Virtual 
@@ -138,7 +144,8 @@ threads include the full stack trace, allowing us to trace the execution back
 to the original call in `RemoteService.sendRequestNested()`. However, the 
 trace in the non blocking execution tops out at 
 `RemoteServiceNonblocking.nonBlockingThird()`, near the bottom of the stack. 
-This can complicate debugging why an exception was thrown.
+This can complicate debugging why an exception was thrown, particularly with
+a deeply-nested stack of asynchronous execution.
 
 ### Conclusions
 

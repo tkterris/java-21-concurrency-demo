@@ -15,11 +15,11 @@ public abstract class RemoteServiceThreaded implements RemoteService {
 
 	@Value("${concurrency.blockTimeMs}")
 	private int blockTimeMs;
-	
+
 	private ExecutorService executorService;
-	
+
 	protected abstract ExecutorService newExecutorService();
-	
+
 	@PostConstruct
 	public void setExecutorService() {
 		this.executorService = newExecutorService();
@@ -31,16 +31,20 @@ public abstract class RemoteServiceThreaded implements RemoteService {
 		return executorService.submit(() -> {
 			// CPU stuff
 			logger.debug("CPU operations here");
+			String intermediateData = "intermediateData";
 			// Blocking stuff
 			logger.debug("Start blocking operation 1");
 			Thread.sleep(blockTimeMs);
+			intermediateData = intermediateData + "result1";
 			logger.debug("Start blocking operation 2");
 			Thread.sleep(blockTimeMs);
+			intermediateData = intermediateData + "result2";
 			logger.debug("Start blocking operation 3");
 			Thread.sleep(blockTimeMs);
+			intermediateData = intermediateData + "result3";
 			// More CPU stuff
 			logger.debug("Some more CPU operations");
-			return "done";
+			return intermediateData + "resultFinal";
 		});
 	}
 
@@ -50,34 +54,35 @@ public abstract class RemoteServiceThreaded implements RemoteService {
 		return executorService.submit(() -> {
 			// CPU stuff
 			logger.debug("CPU operations here");
+			String intermediateData = "intermediate data";
 			// Blocking stuff
-			return threadedFirst();
+			return first(intermediateData);
 		});
 	}
-	
-	private String threadedFirst() throws InterruptedException {
+
+	private String first(String intermediateData) throws InterruptedException {
 		logger.debug("Start blocking operation 1");
 		Thread.sleep(blockTimeMs);
-		return threadedSecond();
-	}
-	
-	private String threadedSecond() throws InterruptedException {
-		logger.debug("Start blocking operation 2");
-		Thread.sleep(blockTimeMs);
-		return threadedThird();
-	}
-	
-	private String threadedThird() throws InterruptedException {
-		logger.debug("Start blocking operation 3");
-		Thread.sleep(blockTimeMs);
-		return completeResponse();
+		return second(intermediateData + "result1");
 	}
 
-	private String completeResponse() {
+	private String second(String intermediateData) throws InterruptedException {
+		logger.debug("Start blocking operation 2");
+		Thread.sleep(blockTimeMs);
+		return third(intermediateData + "result2");
+	}
+
+	private String third(String intermediateData) throws InterruptedException {
+		logger.debug("Start blocking operation 3");
+		Thread.sleep(blockTimeMs);
+		return completeResponse(intermediateData + "result3");
+	}
+
+	private String completeResponse(String intermediateData) {
 		// More CPU stuff
 		logger.debug("Some more CPU operations");
-		logger.info("Current stack", new RuntimeException("Printing stack"));
-		return "done";
+		logger.info("Printing stack trace", new RuntimeException("Some exception"));
+		return intermediateData + "resultFinal";
 	}
 
 }

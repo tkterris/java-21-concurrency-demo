@@ -1,15 +1,17 @@
 package com.redhat.demo.concurrency.service;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+
+import jakarta.annotation.PostConstruct;
 
 @Configuration
 public class RemoteServiceNonblocking implements RemoteService {
@@ -19,7 +21,13 @@ public class RemoteServiceNonblocking implements RemoteService {
 	@Value("${concurrency.blockTimeMs}")
 	private int blockTimeMs;
 
-	private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+	private Executor delayedExecutor;
+
+	@PostConstruct
+	public void setExecutor() {
+		this.delayedExecutor = CompletableFuture.delayedExecutor(blockTimeMs, TimeUnit.MILLISECONDS,
+				new ScheduledThreadPoolExecutor(1));
+	}
 
 	@Override
 	public String getDisplayName() {
@@ -29,62 +37,59 @@ public class RemoteServiceNonblocking implements RemoteService {
 	@Override
 	public Future<String> sendRequest() {
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
-		CompletableFuture<String> result = new CompletableFuture<String>();
 		// CPU stuff
 		logger.debug("CPU operations here");
+		String intermediateData = "intermediate data";
 		// Blocking stuff
-		logger.debug("Start blocking operation 1");
-		// Note: normally you'd return executorService.schedule(...) and use thenApply()
-		// to perform successive blocking operations, with the last callback simply
-		// returning the result. However, thenApply() isn't a method on ScheduledFuture
-		// so we're using this generic approach with an instantiated CompletableFuture
-		// and CompletableFuture.complete() instead.
-		executorService.schedule(() -> {
+		return CompletableFuture.completedFuture(intermediateData).thenCompose(s -> {
+			logger.debug("Start blocking operation 1");
+			return CompletableFuture.supplyAsync(() -> s + "result1", delayedExecutor);
+		}).thenCompose(s -> {
 			logger.debug("Start blocking operation 2");
-			executorService.schedule(() -> {
-				logger.debug("Start blocking operation 3");
-				executorService.schedule(() -> {
-					// More CPU stuff
-					logger.debug("Some more CPU operations");
-					result.complete("done");
-				}, blockTimeMs, TimeUnit.MILLISECONDS);
-			}, blockTimeMs, TimeUnit.MILLISECONDS);
-		}, blockTimeMs, TimeUnit.MILLISECONDS);
-		return result;
+			return CompletableFuture.supplyAsync(() -> s + "result2", delayedExecutor);
+		}).thenCompose(s -> {
+			logger.debug("Start blocking operation 3");
+			return CompletableFuture.supplyAsync(() -> s + "result3", delayedExecutor);
+		}).thenApply(s -> {
+			logger.debug("Some more CPU operations");
+			return s + "resultFinal";
+		});
 	}
 
 	@Override
 	public Future<String> sendRequestNested() {
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
-		CompletableFuture<String> result = new CompletableFuture<String>();
 		// CPU stuff
 		logger.debug("CPU operations here");
-		nonblockingFirst(result);
-		return result;
+		String intermediateData = "intermediateData";
+		// Blocking stuff
+		return first(intermediateData);
 	}
 
-	private void nonblockingFirst(CompletableFuture<String> result) {
+	private CompletableFuture<String> first(String intermediateData) {
 		// Blocking stuff
 		logger.debug("Start blocking operation 1");
-		// See note in sendRequest()
-		executorService.schedule(() -> nonblockingSecond(result), blockTimeMs, TimeUnit.MILLISECONDS);
+		return CompletableFuture.supplyAsync(() -> intermediateData + "result1", delayedExecutor)
+				.thenCompose(s -> second(s));
 	}
 
-	private void nonblockingSecond(CompletableFuture<String> result) {
+	private CompletableFuture<String> second(String intermediateData) {
 		logger.debug("Start blocking operation 2");
-		executorService.schedule(() -> nonblockingThird(result), blockTimeMs, TimeUnit.MILLISECONDS);
+		return CompletableFuture.supplyAsync(() -> intermediateData + "result2", delayedExecutor)
+				.thenCompose(s -> third(s));
 	}
 
-	private void nonblockingThird(CompletableFuture<String> result) {
-		logger.debug("Start blocking operation 2");
-		executorService.schedule(() -> completeResponse(result), blockTimeMs, TimeUnit.MILLISECONDS);
+	private CompletableFuture<String> third(String intermediateData) {
+		logger.debug("Start blocking operation 3");
+		return CompletableFuture.supplyAsync(() -> intermediateData + "result3", delayedExecutor)
+				.thenApply(s -> completeResponse(s));
 	}
 
-	private void completeResponse(CompletableFuture<String> result) {
+	private String completeResponse(String intermediateData) {
 		// More CPU stuff
 		logger.debug("Some more CPU operations");
-		logger.info("Current stack", new RuntimeException("Printing stack"));
-		result.complete("done");
+		logger.info("Printing stack trace", new RuntimeException("Some exception"));
+		return intermediateData + "resultFinal";
 	}
 
 }
