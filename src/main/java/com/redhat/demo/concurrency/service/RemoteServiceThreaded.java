@@ -54,7 +54,7 @@ public abstract class RemoteServiceThreaded implements RemoteService {
 		return executorService.submit(() -> {
 			// CPU stuff
 			logger.debug("CPU operations here");
-			String intermediateData = "intermediate data";
+			String intermediateData = "intermediateData";
 			// Blocking stuff
 			return first(intermediateData);
 		});

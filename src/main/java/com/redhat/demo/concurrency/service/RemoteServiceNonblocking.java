@@ -39,25 +39,30 @@ public class RemoteServiceNonblocking implements RemoteService {
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
 		// CPU stuff
 		logger.debug("CPU operations here");
-		String intermediateData = "intermediate data";
+		String intermediateData = "intermediateData";
 		// Blocking stuff
-		return CompletableFuture.completedFuture(intermediateData).thenCompose(s -> {
-			logger.debug("Start blocking operation 1");
-			return CompletableFuture.supplyAsync(() -> s + "result1", delayedExecutor);
-		}).thenCompose(s -> {
-			logger.debug("Start blocking operation 2");
-			return CompletableFuture.supplyAsync(() -> s + "result2", delayedExecutor);
-		}).thenCompose(s -> {
-			logger.debug("Start blocking operation 3");
-			return CompletableFuture.supplyAsync(() -> s + "result3", delayedExecutor);
-		}).thenApply(s -> {
-			logger.debug("Some more CPU operations");
-			return s + "resultFinal";
-		});
+		logger.debug("Start blocking operation 1");
+		return CompletableFuture.supplyAsync(() -> "result1", delayedExecutor).thenApply(s2 -> intermediateData + s2)
+				.thenCompose(s -> {
+					logger.debug("Start blocking operation 2");
+					return CompletableFuture.supplyAsync(() -> "result2", delayedExecutor).thenApply(s2 -> s + s2);
+				}).thenCompose(s -> {
+					logger.debug("Start blocking operation 3");
+					return CompletableFuture.supplyAsync(() -> "result3", delayedExecutor).thenApply(s2 -> s + s2);
+				}).thenApply(s -> {
+					logger.debug("Some more CPU operations");
+					return s + "resultFinal";
+				});
 	}
 
 	@Override
 	public Future<String> sendRequestNested() {
+		// Note that the pattern here is different from sendRequest(), to simulate a
+		// complex nesting architecture.
+		// sendRequest():
+		// future.thenCompose().thenCompose().thenApply()
+		// sendRequestNested():
+		// future.thenCompose(thenCompose(thenApply()))
 		logger.debug("Sending request with block time {} ms", blockTimeMs);
 		// CPU stuff
 		logger.debug("CPU operations here");
@@ -67,22 +72,21 @@ public class RemoteServiceNonblocking implements RemoteService {
 	}
 
 	private CompletableFuture<String> first(String intermediateData) {
-		// Blocking stuff
 		logger.debug("Start blocking operation 1");
-		return CompletableFuture.supplyAsync(() -> intermediateData + "result1", delayedExecutor)
-				.thenCompose(s -> second(s));
+		return CompletableFuture.supplyAsync(() -> "result1", delayedExecutor)
+				.thenCompose(s -> second(intermediateData + s));
 	}
 
 	private CompletableFuture<String> second(String intermediateData) {
 		logger.debug("Start blocking operation 2");
-		return CompletableFuture.supplyAsync(() -> intermediateData + "result2", delayedExecutor)
-				.thenCompose(s -> third(s));
+		return CompletableFuture.supplyAsync(() -> "result2", delayedExecutor)
+				.thenCompose(s -> third(intermediateData + s));
 	}
 
 	private CompletableFuture<String> third(String intermediateData) {
 		logger.debug("Start blocking operation 3");
-		return CompletableFuture.supplyAsync(() -> intermediateData + "result3", delayedExecutor)
-				.thenApply(s -> completeResponse(s));
+		return CompletableFuture.supplyAsync(() -> "result3", delayedExecutor)
+				.thenApply(s -> completeResponse(intermediateData + s));
 	}
 
 	private String completeResponse(String intermediateData) {
